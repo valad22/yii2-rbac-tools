@@ -1,6 +1,7 @@
 {
   "name": "valad22/yii2-rbac-tools",
   "description": "RBAC and route log management tools for Yii2 applications.",
+  "version": "1.0.0-beta",
   "type": "yii2-extension",
   "license": "MIT",
   "authors": [
