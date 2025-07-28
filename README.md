@@ -5,15 +5,12 @@ Author: [valad22](https://github.com/valad22)
 
 ## Overview
 
-This Yii2 extension provides advanced console tools for managing RBAC configuration and analyzing route usage.  
-It includes two controllers:
+This Yii2 extension provides console tools for managing RBAC configuration and analyzing route usage in Yii2 applications.
 
-- **RbacController**: Export/import RBAC roles, permissions, rules, and hierarchy.
-- **RouteLogController**: Analyze route usage, export routes by role, check permissions, and manage route logs.
+**Two controllers included:**
 
-These tools help you transfer RBAC setups between environments, audit route access, and maintain permissions efficiently.
-
----
+- **RbacController**: Export/import RBAC roles, permissions, rules, and hierarchy
+- **RouteLogController**: Analyze route usage, export routes by role, check permissions, and manage route logs
 
 ## Installation
 
@@ -23,9 +20,32 @@ Install via Composer:
 composer require valad22/yii2-rbac-tools
 ```
 
----
+## Database Setup
+
+Create the route_log table by copying the migration to your project:
+
+```bash
+# Copy migration from vendor to your migrations directory
+cp vendor/valad22/yii2-rbac-tools/migrations/m000000_000000_create_route_log_table.php console/migrations/m$(date +%y%m%d_%H%M%S)_create_route_log_table.php
+
+# Run migration
+./yii migrate
+```
+
+The route_log table contains these fields:
+
+- `id` (primary key)
+- `user_id` (foreign key to user table)
+- `role` (user's role during request)
+- `route` (requested route)
+- `method` (HTTP method)
+- `params` (GET/POST parameters in JSON format)
+- `error_code` (HTTP error code if request failed)
+- `created_at` (timestamp)
 
 ## Configuration
+
+### Console Controllers
 
 Add controllers to your console application's `controllerMap` in `console/config/main.php`:
 
@@ -40,44 +60,45 @@ Add controllers to your console application's `controllerMap` in `console/config
 ],
 ```
 
----
+### Route Logging Setup
 
-## Requirements
+Configure route logging in your frontend application (`frontend/config/main.php`):
 
-- Yii2 framework (`yiisoft/yii2`)
-- RBAC tables (`auth_item`, `auth_item_child`, `auth_rule`)
-- RouteLog model (see below)
-- AuthItem model (see below)
-- Custom RBAC rules (optional, see below)
+```php
+'components' => [
+    'routeLogger' => [
+        'class' => 'common\components\RouteLogger',
+        'enabled' => true,
+        'targetUserIds' => [],
+        'targetRoles' => [],
+    ],
+],
+```
 
----
+**Required files you must create:**
+
+1. **RouteLog model** at `common/models/RouteLog.php` that extends `yii\db\ActiveRecord`
+2. **AuthItem model** at `common/models/AuthItem.php` that extends `yii\db\ActiveRecord`
+3. **RouteLogger component** at `common/components/RouteLogger.php` that logs requests to RouteLog model
 
 ## RBAC Controller
 
-### Features
-
-- **Export RBAC configuration** to a PHP file
-- **Import RBAC configuration** from a file
-- Handles roles, permissions, rules, and hierarchy
-
-### Usage
-
-#### Export RBAC configuration
+### Export RBAC Configuration
 
 ```bash
 # Create data directory (first time only)
 mkdir -p console/migrations/data
 
-# Export RBAC configuration
+# Export current RBAC configuration
 ./yii rbac/export
 ```
 
 Exports to: `console/migrations/data/rbac.php`
 
-#### Import RBAC configuration
+### Import RBAC Configuration
 
 ```bash
-# Import with confirmation
+# Import with confirmation prompt
 ./yii rbac/import
 
 # Force import without confirmation
@@ -86,121 +107,132 @@ Exports to: `console/migrations/data/rbac.php`
 
 **Import behavior:**
 
-- Existing roles are preserved
-- New roles are added if missing
-- All permissions and assignments are recreated
+- Existing roles are preserved (not deleted)
+- New roles are added if they don't exist
+- All permissions are recreated
+- All role-permission assignments are recreated
 - All custom rules are recreated
-
----
 
 ## Route Log Controller
 
-### Route Logging Setup
-
-To enable route logging, you need to configure a logging behavior or component in your Yii2 application that writes to the `RouteLog` model.  
-Example configuration using a behavior in `main.php`:
-
-```php
-'as routeLogger' => [
-    'class' => 'common\\behaviors\\RouteLogBehavior',
-    // Optional: configure properties as needed
-],
-```
-
-Or attach the behavior to controllers:
-
-```php
-public function behaviors()
-{
-    return [
-        'routeLogger' => [
-            'class' => 'common\\behaviors\\RouteLogBehavior',
-        ],
-    ];
-}
-```
-
-Make sure you have the `RouteLog` model and the corresponding database table.
-
-### Features
-
-- **Export routes** used by specific roles
-- **Check route access** for roles
-- **Show route usage statistics**
-- **Clear route log table**
-
-### Usage
-
-Show help:
+### Show Available Commands
 
 ```bash
 ./yii route-log
 ```
 
-#### Export routes used by a role
+### Export Routes Used by Role
 
 ```bash
+# Export routes used by admin role
 ./yii route-log/export --role=admin
-```
 
-Create permissions for new routes:
-
-```bash
+# Create permissions for new routes automatically
 ./yii route-log/export --role=admin --create=1
-```
 
-Export all logged routes (ignore role filter):
-
-```bash
+# Export all logged routes (ignore which role used them)
 ./yii route-log/export --role=admin --ignoreRoleFilter=1
+
+# Filter by date range
+./yii route-log/export --role=editor --from=2025-03-01 --to=2025-03-31
+
+# Limit by record ID
+./yii route-log/export --role=admin --maxId=1000
 ```
 
-#### Show route usage statistics
+### Show Route Usage Statistics
 
 ```bash
+# Show all route statistics
 ./yii route-log/stats
+
+# Filter by role
+./yii route-log/stats --role=editor
+
+# Filter by date range
 ./yii route-log/stats --role=editor --from=2025-03-01 --to=2025-03-31
+
+# Limit by record ID
+./yii route-log/stats --role=admin --maxId=1000
 ```
 
-#### Clear route log table
+### Clear Route Log Table
 
 ```bash
 ./yii route-log/clear
 ```
 
-**Warning:** This will permanently delete all route logs.
+**Warning:** This permanently deletes all route logs and resets auto increment.
 
----
+## Required Models
 
-## Models & RBAC Rules
+### RouteLog Model
 
-You must provide the following models in your application:
+Create `common/models/RouteLog.php`:
 
-- `RouteLog` (should represent the route log table)
-- `AuthItem` (should represent the RBAC item table)
+```php
+<?php
+namespace common\models;
 
-Custom RBAC rules (e.g., `TaskUpdateRule`, `RegisterStatusChangeRule`) should be implemented in your project if needed.
+use yii\db\ActiveRecord;
 
----
+class RouteLog extends ActiveRecord
+{
+    public static function tableName()
+    {
+        return '{{%route_log}}';
+    }
+}
+```
+
+### AuthItem Model
+
+Create `common/models/AuthItem.php`:
+
+```php
+<?php
+namespace common\models;
+
+use yii\db\ActiveRecord;
+
+class AuthItem extends ActiveRecord
+{
+    public static function tableName()
+    {
+        return '{{%auth_item}}';
+    }
+}
+```
 
 ## Security Notes
 
-- Always backup your RBAC configuration before importing.
-- Clearing route logs is irreversible.
-- Review permissions before importing/exporting in production.
-
----
+- Always backup your RBAC configuration before importing
+- Clearing route logs is irreversible
+- Review permissions before importing/exporting in production
+- The route log table can grow large - consider periodic cleanup
 
 ## Troubleshooting
 
-- If you get "RBAC export file not found", run `./yii rbac/export` first.
-- Ensure required models exist and are correctly configured.
-- Check database connection and RBAC table structure.
+**"RBAC export file not found"**
 
----
+- Run `./yii rbac/export` first to create the export file
+
+**"Class 'RouteLog' not found"**
+
+- Create the RouteLog model in `common/models/RouteLog.php`
+- Run the migration to create the route_log table
+
+**"Class 'AuthItem' not found"**
+
+- Create the AuthItem model in `common/models/AuthItem.php`
+- Ensure RBAC tables exist in your database
+
+**Route logging not working**
+
+- Configure RouteLogger component in your application
+- Check that the route_log table exists
+- Verify RouteLog model is accessible
 
 ## Support
 
 For issues and feature requests, open an issue on [GitHub](https://github.com/valad22/yii2-rbac-tools).
-
----
