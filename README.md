@@ -22,13 +22,22 @@ composer require valad22/yii2-rbac-tools
 
 ## Database Setup
 
-Create the route_log table by copying the migration to your project:
+Configure migration namespace in your console application (`console/config/main.php`):
+
+```php
+'controllerMap' => [
+    'migrate' => [
+        'class' => 'yii\console\controllers\MigrateController',
+        'migrationNamespaces' => [
+            'valad22\rbactools\migrations',
+        ],
+    ],
+],
+```
+
+Then run migration:
 
 ```bash
-# Copy migration from vendor to your migrations directory
-cp vendor/valad22/yii2-rbac-tools/migrations/m000000_000000_create_route_log_table.php console/migrations/m$(date +%y%m%d_%H%M%S)_create_route_log_table.php
-
-# Run migration
 ./yii migrate
 ```
 

@@ -1,5 +1,7 @@
 <?php
 
+namespace valad22\rbactools\migrations;
+
 use yii\db\Migration;
 
 /**

@@ -16,5 +16,10 @@
     "psr-4": {
       "valad22\\rbactools\\": "src/"
     }
+  },
+  "extra": {
+    "yii2-extension": {
+      "migrations": "valad22\\rbactools\\migrations"
+    }
   }
 }
