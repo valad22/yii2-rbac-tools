@@ -95,6 +95,33 @@ Exports to: `console/migrations/data/rbac.php`
 
 ## Route Log Controller
 
+### Route Logging Setup
+
+To enable route logging, you need to configure a logging behavior or component in your Yii2 application that writes to the `RouteLog` model.  
+Example configuration using a behavior in `main.php`:
+
+```php
+'as routeLogger' => [
+    'class' => 'common\\behaviors\\RouteLogBehavior',
+    // Optional: configure properties as needed
+],
+```
+
+Or attach the behavior to controllers:
+
+```php
+public function behaviors()
+{
+    return [
+        'routeLogger' => [
+            'class' => 'common\\behaviors\\RouteLogBehavior',
+        ],
+    ];
+}
+```
+
+Make sure you have the `RouteLog` model and the corresponding database table.
+
 ### Features
 
 - **Export routes** used by specific roles
